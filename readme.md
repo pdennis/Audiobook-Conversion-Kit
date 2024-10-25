@@ -1,6 +1,6 @@
 # Book Text Cleanup Tool
 
-This Python script helps clean up text files (such as those extracted from PDFs or ebooks) by processing them through GPT-4. It handles common artifacts, formatting issues, and breaks the text into manageable chunks while preserving natural language boundaries.
+This Python script helps clean up text files (such as those extracted from PDFs or ebooks) by processing them through GPT-4o-mini. It handles common artifacts, formatting issues, and breaks the text into manageable chunks while preserving natural language boundaries.
 
 ## Features
 
@@ -55,7 +55,7 @@ The script will process your file and show progress as it works through each chu
 
 - Validates input file existence
 - Maintains partial progress in case of interruption
-- Preserves original text if GPT-4 processing fails for any chunk
+- Preserves original text if GPT-4o-mini processing fails for any chunk
 
 ## Notes
 
