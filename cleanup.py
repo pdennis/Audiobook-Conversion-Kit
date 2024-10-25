@@ -7,7 +7,7 @@ def clean_text_with_gpt4(text_chunk):
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     
     prompt = """Clean up this text that was extracted from a PDF. Remove OCR artifacts, 
-    fix formatting issues, and make it readable. Preserve the original meaning and content. Only output the final text, no additional commentary or description of the task:
+    fix formatting issues, and make it readable. Your final output will be read by text to speech software, so describe objects such as data tables or non-linguistic information in plain words. Preserve the original meaning and content. Only output the final text, no additional commentary or description of the task:
     
     {text}
     """
