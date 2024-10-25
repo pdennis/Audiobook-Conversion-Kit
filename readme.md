@@ -1,9 +1,10 @@
-# Book Processing Tools
+# Audiobook Conversion Kit
 
-These tools are for processing my manually scanned paper books into listenable audiobooks. 
+When I scan a paper book and OCR the results, I generally get a readable, but slightly messy file. This is a toolkit for turning those files into listenable audiobooks.
 
-This repository contains two Python scripts for processing text files (such as those extracted from PDFs or ebooks):
-1. A text cleanup tool using GPT-4o-mini, for making sure OCR artefacts and other non-audiobook friendly text is fixed. 
+There are two tools: 
+
+1. A text cleanup tool using GPT-4o-mini, for making sure OCR artefacts and other non-audiobook friendly text is cleaned up. 
 2. An audiobook conversion tool using OpenAI's TTS-1 model, to convert the text file to MP3
 
 ## Text Cleanup Tool
