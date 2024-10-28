@@ -12,6 +12,22 @@ def get_valid_input_file():
             return file_path
         print(f"Error: File '{file_path}' does not exist. Please try again.")
 
+def choose_voice():
+    """Prompt user to choose a voice."""
+    voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    print("\nAvailable voices:")
+    for i, voice in enumerate(voices, 1):
+        print(f"{i}. {voice}")
+
+    while True:
+        choice = input("\nChoose a voice by number (1-6) or name: ").strip().lower()
+        if choice.isdigit() and 1 <= int(choice) <= len(voices):
+            return voices[int(choice) - 1]
+        elif choice in voices:
+            return choice
+        else:
+            print("Invalid choice. Please enter a number from 1 to 6 or a valid voice name.")
+
 def split_text(text, max_length=4000):
     """Split text into chunks that TTS can handle, trying to break at sentences."""
     chunks = []
@@ -39,12 +55,12 @@ def split_text(text, max_length=4000):
     
     return chunks
 
-def text_to_speech(client, text_chunk, output_dir, chunk_num):
+def text_to_speech(client, text_chunk, output_dir, chunk_num, voice):
     """Convert text chunk to speech using OpenAI's API."""
     try:
         response = client.audio.speech.create(
             model="tts-1",
-            voice="onyx",
+            voice=voice,
             input=text_chunk
         )
         
@@ -69,7 +85,7 @@ def concatenate_audio_files(audio_files, output_file):
             with open(file_path, 'rb') as infile:
                 shutil.copyfileobj(infile, outfile)
 
-def process_file(input_file):
+def process_file(input_file, voice):
     """Process entire text file to speech."""
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     
@@ -97,7 +113,7 @@ def process_file(input_file):
         for i, chunk in enumerate(chunks, 1):
             print(f"Processing chunk {i}/{total_chunks}")
             
-            temp_path = text_to_speech(client, chunk, output_dir, i)
+            temp_path = text_to_speech(client, chunk, output_dir, i, voice)
             if temp_path:
                 audio_files.append(temp_path)
             
@@ -132,9 +148,13 @@ if __name__ == "__main__":
     print(f"Input file: {input_file}")
     print(f"Output will be saved as: {Path(input_file).stem}_audiobook.mp3")
     
+    # Choose voice
+    voice = choose_voice()
+    print(f"Selected voice: {voice}")
+    
     # Confirm with user
     if input("Proceed? (y/n): ").lower().strip() != 'y':
         print("Operation cancelled.")
         exit()
     
-    process_file(input_file)
+    process_file(input_file, voice)
