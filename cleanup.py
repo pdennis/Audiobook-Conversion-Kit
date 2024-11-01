@@ -22,52 +22,85 @@ def clean_text_with_gpt4(text_chunk):
         print(f"Error processing chunk: {e}")
         return text_chunk
 
-def split_into_chunks(text, max_chunk_size=2000):
-    """Split text into chunks at natural boundaries."""
+def split_into_chunks(text, max_chunk_size=3000, min_chunk_size=1500):
+    """Split text into chunks at natural boundaries while maintaining context.
+    
+    Args:
+        text (str): The input text to split
+        max_chunk_size (int): Maximum size of each chunk
+        min_chunk_size (int): Minimum size for non-final chunks
+        
+    Returns:
+        list: List of text chunks
+    """
     chunks = []
     current_chunk = []
     current_size = 0
     
-    # Split into lines first
-    lines = text.split('\n')
+    # Split into paragraphs first (double newlines indicate paragraphs)
+    paragraphs = text.split('\n\n')
     
-    for line in lines:
-        # If adding this line would exceed max_chunk_size
-        if current_size + len(line) + 1 > max_chunk_size and current_chunk:
-            # Join the current chunk and add to chunks list
-            chunks.append('\n'.join(current_chunk))
-            # Start new chunk
-            current_chunk = []
-            current_size = 0
-        
-        # If a single line is longer than max_chunk_size, split it at sentence boundaries
-        if len(line) > max_chunk_size:
-            # Common sentence endings
-            separators = ['. ', '! ', '? ', '; ']
-            current_sentence = []
-            words = line.split(' ')
+    for paragraph in paragraphs:
+        # If this paragraph would exceed max_chunk_size
+        if current_size + len(paragraph) + 2 > max_chunk_size:
+            # Only create a new chunk if we have enough content
+            if current_size >= min_chunk_size:
+                chunks.append('\n\n'.join(current_chunk))
+                current_chunk = []
+                current_size = 0
             
-            for word in words:
-                current_sentence.append(word)
-                sentence_text = ' '.join(current_sentence)
+            # If a single paragraph is longer than max_chunk_size
+            if len(paragraph) > max_chunk_size:
+                # Split at sentence boundaries
+                sentences = []
+                current_sentence = []
+                words = paragraph.split(' ')
                 
-                # Check if any sentence endings are in the last word
-                ends_with_separator = any(word.endswith(sep.strip()) for sep in separators)
+                for word in words:
+                    current_sentence.append(word)
+                    sentence_text = ' '.join(current_sentence)
+                    
+                    # Check for sentence endings
+                    ends_with_separator = any(
+                        word.endswith(sep) 
+                        for sep in ['.', '!', '?', ';']
+                    )
+                    
+                    if ends_with_separator and len(sentence_text) > min_chunk_size:
+                        sentences.append(sentence_text)
+                        current_sentence = []
                 
-                if (len(sentence_text) > max_chunk_size or ends_with_separator) and current_sentence:
-                    if current_chunk:
-                        chunks.append('\n'.join(current_chunk))
-                    chunks.append(sentence_text)
-                    current_chunk = []
-                    current_sentence = []
-                    current_size = 0
+                # Add any remaining sentence
+                if current_sentence:
+                    sentences.append(' '.join(current_sentence))
+                
+                # Combine sentences into chunks of appropriate size
+                temp_chunk = []
+                temp_size = 0
+                
+                for sentence in sentences:
+                    if temp_size + len(sentence) + 1 <= max_chunk_size:
+                        temp_chunk.append(sentence)
+                        temp_size += len(sentence) + 1
+                    else:
+                        if temp_chunk:
+                            chunks.append(' '.join(temp_chunk))
+                        temp_chunk = [sentence]
+                        temp_size = len(sentence)
+                
+                if temp_chunk:
+                    current_chunk.append(' '.join(temp_chunk))
+                    current_size = temp_size
+            else:
+                current_chunk.append(paragraph)
+                current_size += len(paragraph) + 2  # +2 for paragraph separation
         else:
-            current_chunk.append(line)
-            current_size += len(line) + 1  # +1 for newline
+            current_chunk.append(paragraph)
+            current_size += len(paragraph) + 2  # +2 for paragraph separation
     
-    # Add the last chunk if there is one
+    # Add the final chunk if there is one
     if current_chunk:
-        chunks.append('\n'.join(current_chunk))
+        chunks.append('\n\n'.join(current_chunk))
     
     return chunks
 
