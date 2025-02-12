@@ -1,38 +1,26 @@
 import os
-from openai import OpenAI
 from pathlib import Path
+import ollama
 
-def clean_text_with_gpt4(text_chunk):
-    """Send text chunk to GPT-4 for cleanup."""
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-    
-    prompt = """Clean up this text that was extracted from a PDF. Remove OCR artifacts, fix formatting issues, and make it readable. Remove page numbers or repeated chapter identifiers that exist on every page. Otherwise, preserve the origional content. Only output the final text, no additional commentary or description of the task. Text:   {text} """
+def clean_text_with_ollama(text_chunk, model_name):
+    """Send text chunk to Ollama model for cleanup."""
+    prompt = """Clean up this text that was extracted from a PDF. Remove OCR artifacts, fix formatting issues, and make it readable. Remove page numbers or repeated chapter identifiers that exist on every page. Otherwise, preserve the original content. Only output the final text, no additional commentary or description of the task. Text:   {text} """
     
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = ollama.chat(
+            model=model_name,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that cleans up OCR text into scripts for audiobooks."},
                 {"role": "user", "content": prompt.format(text=text_chunk)}
-            ],
-            temperature=0.3
+            ]
         )
-        return response.choices[0].message.content
+        return response.message.content
     except Exception as e:
         print(f"Error processing chunk: {e}")
         return text_chunk
 
 def split_into_chunks(text, max_chunk_size=3000, min_chunk_size=1500):
-    """Split text into chunks at natural boundaries while maintaining context.
-    
-    Args:
-        text (str): The input text to split
-        max_chunk_size (int): Maximum size of each chunk
-        min_chunk_size (int): Minimum size for non-final chunks
-        
-    Returns:
-        list: List of text chunks
-    """
+    """Split text into chunks at natural boundaries while maintaining context."""
     chunks = []
     current_chunk = []
     current_size = 0
@@ -93,10 +81,10 @@ def split_into_chunks(text, max_chunk_size=3000, min_chunk_size=1500):
                     current_size = temp_size
             else:
                 current_chunk.append(paragraph)
-                current_size += len(paragraph) + 2  # +2 for paragraph separation
+                current_size += len(paragraph) + 2
         else:
             current_chunk.append(paragraph)
-            current_size += len(paragraph) + 2  # +2 for paragraph separation
+            current_size += len(paragraph) + 2
     
     # Add the final chunk if there is one
     if current_chunk:
@@ -104,8 +92,17 @@ def split_into_chunks(text, max_chunk_size=3000, min_chunk_size=1500):
     
     return chunks
 
-def process_text_file(input_file, output_file, chunk_size=2000):
-    """Process text file in chunks and clean with GPT-4."""
+def get_available_models():
+    """Get list of available Ollama models."""
+    try:
+        models = ollama.list()
+        return [model['name'] for model in models['models']]
+    except Exception as e:
+        print(f"Error fetching models: {e}")
+        return []
+
+def process_text_file(input_file, output_file, model_name, chunk_size=2000):
+    """Process text file in chunks and clean with Ollama model."""
     # Read the input file
     with open(input_file, 'r', encoding='utf-8') as f:
         text = f.read()
@@ -119,7 +116,7 @@ def process_text_file(input_file, output_file, chunk_size=2000):
     
     for i, chunk in enumerate(chunks, 1):
         print(f"Processing chunk {i}/{total_chunks}")
-        cleaned_chunk = clean_text_with_gpt4(chunk)
+        cleaned_chunk = clean_text_with_ollama(chunk, model_name)
         cleaned_chunks.append(cleaned_chunk)
         
         # Optional: Write progress to temporary file
@@ -142,10 +139,33 @@ def get_valid_input_file():
             return file_path
         print(f"Error: File '{file_path}' does not exist. Please try again.")
 
+def select_model():
+    """Let user select from available models or specify a different one."""
+    available_models = get_available_models()
+    
+    if available_models:
+        print("\nAvailable models:")
+        for i, model in enumerate(available_models, 1):
+            print(f"{i}. {model}")
+        print(f"{len(available_models) + 1}. Specify a different model")
+        
+        while True:
+            try:
+                choice = int(input("\nSelect a model (enter number): "))
+                if 1 <= choice <= len(available_models):
+                    return available_models[choice - 1]
+                elif choice == len(available_models) + 1:
+                    return input("Enter model name: ").strip()
+                else:
+                    print("Invalid choice. Please try again.")
+            except ValueError:
+                print("Please enter a number.")
+    else:
+        return input("Enter model name (e.g., 'llama2'): ").strip()
+
 if __name__ == "__main__":
-    # Make sure OPENAI_API_KEY is set in environment variables
-    if not os.getenv('OPENAI_API_KEY'):
-        raise ValueError("Please set OPENAI_API_KEY environment variable")
+    print("Text Cleanup Script using Ollama")
+    print("--------------------------------")
     
     # Get input file from user
     input_file = get_valid_input_file()
@@ -154,13 +174,17 @@ if __name__ == "__main__":
     input_path = Path(input_file)
     output_file = str(input_path.parent / f"{input_path.stem}_cleaned{input_path.suffix}")
     
-    print(f"Input file: {input_file}")
+    # Select model
+    model_name = select_model()
+    
+    print(f"\nInput file: {input_file}")
+    print(f"Selected model: {model_name}")
     print(f"Output will be saved to: {output_file}")
     
     # Confirm with user
-    if input("Proceed? (y/n): ").lower().strip() != 'y':
+    if input("\nProceed? (y/n): ").lower().strip() != 'y':
         print("Operation cancelled.")
         exit()
     
-    process_text_file(input_file, output_file)
-    print(f"Processing complete. Cleaned text saved to {output_file}")
+    process_text_file(input_file, output_file, model_name)
+    print(f"\nProcessing complete. Cleaned text saved to {output_file}")
