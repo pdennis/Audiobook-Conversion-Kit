@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
-from openai import OpenAI
+from kokoro import KPipeline, KModel
 import time
-import shutil
+import soundfile as sf
+from loguru import logger
+import torch
 
 def get_valid_input_file():
     """Prompt user for input file and validate it exists."""
@@ -12,24 +14,56 @@ def get_valid_input_file():
             return file_path
         print(f"Error: File '{file_path}' does not exist. Please try again.")
 
+def choose_device():
+    """Let user choose between GPU and CPU if GPU is available."""
+    cuda_available = torch.cuda.is_available()
+    if not cuda_available:
+        logger.info("GPU not available, using CPU")
+        return False
+        
+    while True:
+        choice = input("\nUse GPU for faster processing? (y/n): ").strip().lower()
+        if choice == 'y':
+            return True
+        elif choice == 'n':
+            return False
+        print("Please enter 'y' or 'n'")
+
+def process_file(input_file, voice, use_gpu=False):
+    """Process entire text file to speech."""
+    # Initialize Kokoro pipeline and model
+    if use_gpu and not torch.cuda.is_available():
+        logger.warning("GPU requested but not available, falling back to CPU")
+        use_gpu = False
+        
+    model = KModel().to('cuda' if use_gpu else 'cpu').eval()
+    pipeline = KPipeline(lang_code=voice[0])
+
 def choose_voice():
     """Prompt user to choose a voice."""
-    voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    voices = [
+        'af_heart', 'af_bella', 'af_nicole', 'af_aoede', 'af_kore',
+        'af_sarah', 'af_nova', 'af_sky', 'af_alloy', 'af_jessica',
+        'af_river', 'am_michael', 'am_fenrir', 'am_puck', 'am_echo',
+        'am_eric', 'am_liam', 'am_onyx', 'am_santa', 'am_adam',
+        'bf_emma', 'bf_isabella', 'bf_alice', 'bf_lily',
+        'bm_george', 'bm_fable', 'bm_lewis', 'bm_daniel'
+    ]
     print("\nAvailable voices:")
     for i, voice in enumerate(voices, 1):
         print(f"{i}. {voice}")
 
     while True:
-        choice = input("\nChoose a voice by number (1-6) or name: ").strip().lower()
+        choice = input("\nChoose a voice by number (1-28) or name: ").strip().lower()
         if choice.isdigit() and 1 <= int(choice) <= len(voices):
             return voices[int(choice) - 1]
         elif choice in voices:
             return choice
         else:
-            print("Invalid choice. Please enter a number from 1 to 6 or a valid voice name.")
+            print("Invalid choice. Please enter a number from 1-28 or a valid voice name.")
 
-def split_text(text, max_length=4000):
-    """Split text into chunks that TTS can handle, trying to break at sentences."""
+def split_text(text, max_length=500):
+    """Split text into chunks, trying to break at sentences."""
     chunks = []
     current_chunk = []
     current_length = 0
@@ -55,39 +89,63 @@ def split_text(text, max_length=4000):
     
     return chunks
 
-def text_to_speech(client, text_chunk, output_dir, chunk_num, voice):
-    """Convert text chunk to speech using OpenAI's API."""
+def initialize_model(use_gpu=False):
+    """Initialize the Kokoro model with proper device selection."""
+    model = KModel()
+    if use_gpu and torch.cuda.is_available():
+        model = model.to('cuda')
+        logger.info("Using GPU for synthesis")
+    else:
+        model = model.to('cpu')
+        logger.info("Using CPU for synthesis")
+    return model.eval()
+
+def text_to_speech(pipeline, model, text_chunk, output_dir, chunk_num, voice):
+    """Convert text chunk to speech using Kokoro."""
     try:
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text_chunk
-        )
+        temp_path = output_dir / f"chunk_{chunk_num:04d}.wav"
+        pack = pipeline.load_voice(voice)
         
-        # Save temporary chunk
-        temp_path = output_dir / f"chunk_{chunk_num:04d}.mp3"
-        response.stream_to_file(temp_path)
-        
-        return temp_path
+        for _, ps, _ in pipeline(text_chunk, voice):
+            if ps:  # Check if we got phoneme sequence
+                ref_s = pack[len(ps)-1]
+                audio = model(ps, ref_s, speed=1.0)
+                if audio is not None:
+                    # Save the audio chunk
+                    sf.write(temp_path, audio.cpu().numpy(), 24000)  # Kokoro uses 24kHz
+                    logger.info(f"Saved chunk {chunk_num}")
+                    return temp_path
+            
+        return None
     except Exception as e:
-        print(f"Error processing chunk {chunk_num}: {e}")
+        logger.error(f"Error processing chunk {chunk_num}: {e}")
         return None
 
 def concatenate_audio_files(audio_files, output_file):
-    """Concatenate MP3 files using direct file writing."""
-    with open(output_file, 'wb') as outfile:
-        # Write the first file completely
-        with open(audio_files[0], 'rb') as firstfile:
-            shutil.copyfileobj(firstfile, outfile)
-        
-        # Append the rest of the files
-        for file_path in audio_files[1:]:
-            with open(file_path, 'rb') as infile:
-                shutil.copyfileobj(infile, outfile)
+    """Concatenate WAV files."""
+    import numpy as np
+    
+    # Read the first file to get parameters
+    data, sample_rate = sf.read(audio_files[0])
+    total_data = [data]
+    
+    # Read and append the rest
+    for file_path in audio_files[1:]:
+        data, _ = sf.read(file_path)
+        total_data.append(data)
+    
+    # Combine all audio data
+    combined = np.concatenate(total_data)
+    
+    # Write the combined file
+    sf.write(output_file, combined, sample_rate)
 
 def process_file(input_file, voice):
     """Process entire text file to speech."""
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    # Initialize Kokoro pipeline and model
+    use_gpu = torch.cuda.is_available()
+    model = initialize_model(use_gpu)
+    pipeline = KPipeline(lang_code=voice[0])  # 'a' for US English, 'b' for UK English
     
     # Create output directory for temporary files
     input_path = Path(input_file)
@@ -95,7 +153,7 @@ def process_file(input_file, voice):
     output_dir.mkdir(exist_ok=True)
     
     # Final output file path
-    output_file = input_path.parent / f"{input_path.stem}_audiobook.mp3"
+    output_file = input_path.parent / f"{input_path.stem}_audiobook.wav"
     
     try:
         # Read input file
@@ -105,26 +163,26 @@ def process_file(input_file, voice):
         # Split into chunks
         chunks = split_text(text)
         total_chunks = len(chunks)
-        print(f"Text split into {total_chunks} chunks")
+        logger.info(f"Text split into {total_chunks} chunks")
         
         # Process each chunk
         audio_files = []
         
         for i, chunk in enumerate(chunks, 1):
-            print(f"Processing chunk {i}/{total_chunks}")
+            logger.info(f"Processing chunk {i}/{total_chunks}")
             
-            temp_path = text_to_speech(client, chunk, output_dir, i, voice)
+            temp_path = text_to_speech(pipeline, model, chunk, output_dir, i, voice)
             if temp_path:
                 audio_files.append(temp_path)
             
-            # Add a small delay to avoid rate limits
-            time.sleep(1)
+            # Small delay between chunks
+            time.sleep(0.1)
         
         if audio_files:
             # Combine all audio files
-            print("\nCombining audio files...")
+            logger.info("\nCombining audio files...")
             concatenate_audio_files([str(f) for f in audio_files], output_file)
-            print(f"Audio book saved to: {output_file}")
+            logger.info(f"Audio book saved to: {output_file}")
         
         # Clean up temporary files
         for file in audio_files:
@@ -132,29 +190,30 @@ def process_file(input_file, voice):
         output_dir.rmdir()
         
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
         return False
     
     return True
 
 if __name__ == "__main__":
-    # Make sure OPENAI_API_KEY is set in environment variables
-    if not os.getenv('OPENAI_API_KEY'):
-        raise ValueError("Please set OPENAI_API_KEY environment variable")
-    
     # Get input file from user
     input_file = get_valid_input_file()
     
-    print(f"Input file: {input_file}")
-    print(f"Output will be saved as: {Path(input_file).stem}_audiobook.mp3")
+    logger.info(f"Input file: {input_file}")
+    logger.info(f"Output will be saved as: {Path(input_file).stem}_audiobook.wav")
     
     # Choose voice
     voice = choose_voice()
-    print(f"Selected voice: {voice}")
+    logger.info(f"Selected voice: {voice}")
+    
+    # Choose device
+    use_gpu = choose_device()
+    device_type = "GPU" if use_gpu else "CPU"
+    logger.info(f"Using {device_type} for processing")
     
     # Confirm with user
     if input("Proceed? (y/n): ").lower().strip() != 'y':
-        print("Operation cancelled.")
+        logger.info("Operation cancelled.")
         exit()
     
-    process_file(input_file, voice)
+    process_file(input_file, voice, use_gpu)
