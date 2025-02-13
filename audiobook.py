@@ -29,16 +29,6 @@ def choose_device():
             return False
         print("Please enter 'y' or 'n'")
 
-def process_file(input_file, voice, use_gpu=False):
-    """Process entire text file to speech."""
-    # Initialize Kokoro pipeline and model
-    if use_gpu and not torch.cuda.is_available():
-        logger.warning("GPU requested but not available, falling back to CPU")
-        use_gpu = False
-        
-    model = KModel().to('cuda' if use_gpu else 'cpu').eval()
-    pipeline = KPipeline(lang_code=voice[0])
-
 def choose_voice():
     """Prompt user to choose a voice."""
     voices = [
@@ -140,10 +130,9 @@ def concatenate_audio_files(audio_files, output_file):
     # Write the combined file
     sf.write(output_file, combined, sample_rate)
 
-def process_file(input_file, voice):
+def process_file(input_file, voice, use_gpu=False):
     """Process entire text file to speech."""
     # Initialize Kokoro pipeline and model
-    use_gpu = torch.cuda.is_available()
     model = initialize_model(use_gpu)
     pipeline = KPipeline(lang_code=voice[0])  # 'a' for US English, 'b' for UK English
     
