@@ -21,19 +21,22 @@ This script helps clean up text files by processing them through GPT-4o-mini. It
 
 ## Audiobook Conversion Tool
 
-This script converts text files into audiobooks using OpenAI's text-to-speech API with the Onyx voice model.
+This script converts text files into audiobooks using the MLX-Audio text-to-speech engine, optimized for Apple Silicon.
 
 ### Features
 - Converts entire text files to speech
-- Uses OpenAI's TTS-1 model with Onyx voice
+- Uses MLX-Audio TTS engine (fast inference on Apple Silicon)
+- Multiple voice options (af_heart, af_nova, af_bella, bf_emma)
+- Adjustable speech speed (0.5x to 2.0x)
 - Splits text into processable chunks at sentence boundaries
-- Combines all audio chunks into a single MP3 file
+- Combines all audio chunks into a single WAV file
 - Includes progress tracking
 - Cleans up temporary files automatically
 
 ## Prerequisites
 - Python 3.6 or higher
-- OpenAI API key
+- Apple Silicon Mac (for optimal MLX-Audio performance)
+- OpenAI API key (only for text cleanup tool)
 
 ## Installation
 
@@ -68,8 +71,10 @@ This script converts text files into audiobooks using OpenAI's text-to-speech AP
    python audiobook.py
    ```
 2. When prompted, enter the path to your text file
-3. Review the output path (will be original_filename_audiobook.mp3)
-4. Confirm to proceed
+3. Choose a voice from the available options
+4. Set the speech speed (between 0.5 and 2.0)
+5. Review the output path (will be original_filename_audiobook.wav)
+6. Confirm to proceed
 
 ## Output Files
 
@@ -79,8 +84,8 @@ This script converts text files into audiobooks using OpenAI's text-to-speech AP
 - A temporary `.partial` file is created during processing and automatically removed upon completion
 
 ### Audiobook
-- The audio will be saved to a new file with '_audiobook.mp3' appended to the original filename
-- Example: `book.txt` → `book_audiobook.mp3`
+- The audio will be saved to a new file with '_audiobook.wav' appended to the original filename
+- Example: `book.txt` → `book_audiobook.wav`
 - Temporary audio chunks are created during processing and automatically removed upon completion
 
 ## Error Handling

@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
-from kokoro import KPipeline, KModel
 import time
 import soundfile as sf
 from loguru import logger
-import torch
+from mlx_audio.tts.generate import generate_audio
 
 def get_valid_input_file():
     """Prompt user for input file and validate it exists."""
@@ -14,43 +13,34 @@ def get_valid_input_file():
             return file_path
         print(f"Error: File '{file_path}' does not exist. Please try again.")
 
-def choose_device():
-    """Let user choose between GPU and CPU if GPU is available."""
-    cuda_available = torch.cuda.is_available()
-    if not cuda_available:
-        logger.info("GPU not available, using CPU")
-        return False
-        
-    while True:
-        choice = input("\nUse GPU for faster processing? (y/n): ").strip().lower()
-        if choice == 'y':
-            return True
-        elif choice == 'n':
-            return False
-        print("Please enter 'y' or 'n'")
-
 def choose_voice():
     """Prompt user to choose a voice."""
     voices = [
-        'af_heart', 'af_bella', 'af_nicole', 'af_aoede', 'af_kore',
-        'af_sarah', 'af_nova', 'af_sky', 'af_alloy', 'af_jessica',
-        'af_river', 'am_michael', 'am_fenrir', 'am_puck', 'am_echo',
-        'am_eric', 'am_liam', 'am_onyx', 'am_santa', 'am_adam',
-        'bf_emma', 'bf_isabella', 'bf_alice', 'bf_lily',
-        'bm_george', 'bm_fable', 'bm_lewis', 'bm_daniel'
+        'af_heart', 'af_nova', 'af_bella', 'bf_emma'
     ]
     print("\nAvailable voices:")
     for i, voice in enumerate(voices, 1):
         print(f"{i}. {voice}")
 
     while True:
-        choice = input("\nChoose a voice by number (1-28) or name: ").strip().lower()
+        choice = input("\nChoose a voice by number (1-4) or name: ").strip().lower()
         if choice.isdigit() and 1 <= int(choice) <= len(voices):
             return voices[int(choice) - 1]
         elif choice in voices:
             return choice
         else:
-            print("Invalid choice. Please enter a number from 1-28 or a valid voice name.")
+            print("Invalid choice. Please enter a number from 1-4 or a valid voice name.")
+
+def choose_speech_speed():
+    """Let user choose speech speed."""
+    while True:
+        try:
+            speed = float(input("\nEnter speech speed (0.5-2.0): ").strip())
+            if 0.5 <= speed <= 2.0:
+                return speed
+            print("Speed must be between 0.5 and 2.0")
+        except ValueError:
+            print("Please enter a valid number")
 
 def split_text(text, max_length=500):
     """Split text into chunks, trying to break at sentences."""
@@ -79,34 +69,26 @@ def split_text(text, max_length=500):
     
     return chunks
 
-def initialize_model(use_gpu=False):
-    """Initialize the Kokoro model with proper device selection."""
-    model = KModel()
-    if use_gpu and torch.cuda.is_available():
-        model = model.to('cuda')
-        logger.info("Using GPU for synthesis")
-    else:
-        model = model.to('cpu')
-        logger.info("Using CPU for synthesis")
-    return model.eval()
-
-def text_to_speech(pipeline, model, text_chunk, output_dir, chunk_num, voice):
-    """Convert text chunk to speech using Kokoro."""
+def text_to_speech(text_chunk, output_dir, chunk_num, voice, speed):
+    """Convert text chunk to speech using MLX-Audio."""
     try:
         temp_path = output_dir / f"chunk_{chunk_num:04d}.wav"
-        pack = pipeline.load_voice(voice)
         
-        for _, ps, _ in pipeline(text_chunk, voice):
-            if ps:  # Check if we got phoneme sequence
-                ref_s = pack[len(ps)-1]
-                audio = model(ps, ref_s, speed=1.0)
-                if audio is not None:
-                    # Save the audio chunk
-                    sf.write(temp_path, audio.cpu().numpy(), 24000)  # Kokoro uses 24kHz
-                    logger.info(f"Saved chunk {chunk_num}")
-                    return temp_path
-            
-        return None
+        # Generate audio using MLX-Audio
+        generate_audio(
+            text=text_chunk,
+            voice=voice,
+            speed=speed,
+            lang_code=voice[0],  # 'a' for US English, 'b' for UK English
+            file_prefix=str(temp_path.with_suffix('')),
+            audio_format="wav",
+            sample_rate=24000,
+            join_audio=True,
+            verbose=False  # Disable print messages to avoid cluttering output
+        )
+        
+        logger.info(f"Saved chunk {chunk_num}")
+        return temp_path
     except Exception as e:
         logger.error(f"Error processing chunk {chunk_num}: {e}")
         return None
@@ -130,12 +112,8 @@ def concatenate_audio_files(audio_files, output_file):
     # Write the combined file
     sf.write(output_file, combined, sample_rate)
 
-def process_file(input_file, voice, use_gpu=False):
+def process_file(input_file, voice, speed):
     """Process entire text file to speech."""
-    # Initialize Kokoro pipeline and model
-    model = initialize_model(use_gpu)
-    pipeline = KPipeline(lang_code=voice[0])  # 'a' for US English, 'b' for UK English
-    
     # Create output directory for temporary files
     input_path = Path(input_file)
     output_dir = input_path.parent / f"{input_path.stem}_tts_temp"
@@ -160,7 +138,7 @@ def process_file(input_file, voice, use_gpu=False):
         for i, chunk in enumerate(chunks, 1):
             logger.info(f"Processing chunk {i}/{total_chunks}")
             
-            temp_path = text_to_speech(pipeline, model, chunk, output_dir, i, voice)
+            temp_path = text_to_speech(chunk, output_dir, i, voice, speed)
             if temp_path:
                 audio_files.append(temp_path)
             
@@ -195,14 +173,13 @@ if __name__ == "__main__":
     voice = choose_voice()
     logger.info(f"Selected voice: {voice}")
     
-    # Choose device
-    use_gpu = choose_device()
-    device_type = "GPU" if use_gpu else "CPU"
-    logger.info(f"Using {device_type} for processing")
+    # Choose speech speed
+    speed = choose_speech_speed()
+    logger.info(f"Selected speed: {speed}")
     
     # Confirm with user
     if input("Proceed? (y/n): ").lower().strip() != 'y':
         logger.info("Operation cancelled.")
         exit()
     
-    process_file(input_file, voice, use_gpu)
+    process_file(input_file, voice, speed)
