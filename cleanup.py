@@ -6,6 +6,10 @@ def clean_text_with_ollama(text_chunk, model_name):
     """Send text chunk to Ollama model for cleanup."""
     prompt = """Clean up this text that was extracted from a PDF. Remove OCR artifacts, fix formatting issues, and make it readable. Remove page numbers or repeated chapter identifiers that exist on every page. Otherwise, preserve the original content. Only output the final text, no additional commentary or description of the task. Text:   {text} """
     
+    # Remove 'ollama run' prefix if present
+    if model_name.startswith('ollama run '):
+        model_name = model_name.replace('ollama run ', '')
+    
     try:
         response = ollama.chat(
             model=model_name,

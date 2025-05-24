@@ -94,8 +94,9 @@ def text_to_speech(text_chunk, output_dir, chunk_num, voice, speed):
         return None
 
 def concatenate_audio_files(audio_files, output_file):
-    """Concatenate WAV files."""
+    """Concatenate audio files and save as MP3 if output is MP3."""
     import numpy as np
+    from pydub import AudioSegment
     
     # Read the first file to get parameters
     data, sample_rate = sf.read(audio_files[0])
@@ -109,8 +110,21 @@ def concatenate_audio_files(audio_files, output_file):
     # Combine all audio data
     combined = np.concatenate(total_data)
     
-    # Write the combined file
-    sf.write(output_file, combined, sample_rate)
+    # Check if output is MP3
+    if output_file.suffix.lower() == '.mp3':
+        # First save as temporary WAV
+        temp_wav = output_file.with_suffix('.wav')
+        sf.write(temp_wav, combined, sample_rate)
+        
+        # Convert to MP3 using pydub
+        audio = AudioSegment.from_wav(temp_wav)
+        audio.export(output_file, format="mp3")
+        
+        # Remove temporary WAV file
+        os.remove(temp_wav)
+    else:
+        # Write the combined file as WAV
+        sf.write(output_file, combined, sample_rate)
 
 def process_file(input_file, voice, speed):
     """Process entire text file to speech."""
@@ -120,7 +134,7 @@ def process_file(input_file, voice, speed):
     output_dir.mkdir(exist_ok=True)
     
     # Final output file path
-    output_file = input_path.parent / f"{input_path.stem}_audiobook.wav"
+    output_file = input_path.parent / f"{input_path.stem}_audiobook.mp3"
     
     try:
         # Read input file
@@ -150,6 +164,14 @@ def process_file(input_file, voice, speed):
             logger.info("\nCombining audio files...")
             concatenate_audio_files([str(f) for f in audio_files], output_file)
             logger.info(f"Audio book saved to: {output_file}")
+            
+            # Update podcast feed
+            try:
+                from podcast_feed import update_feed_after_audiobook
+                feed_path = update_feed_after_audiobook(output_file)
+                logger.info(f"Updated podcast feed: {feed_path}")
+            except Exception as feed_error:
+                logger.error(f"Failed to update podcast feed: {feed_error}")
         
         # Clean up temporary files
         for file in audio_files:
@@ -167,7 +189,7 @@ if __name__ == "__main__":
     input_file = get_valid_input_file()
     
     logger.info(f"Input file: {input_file}")
-    logger.info(f"Output will be saved as: {Path(input_file).stem}_audiobook.wav")
+    logger.info(f"Output will be saved as: {Path(input_file).stem}_audiobook.mp3")
     
     # Choose voice
     voice = choose_voice()

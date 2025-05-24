@@ -2,10 +2,11 @@
 
 When I scan a paper book and OCR the results, I generally get a readable, but slightly messy file. This is a toolkit for turning those files into listenable audiobooks.
 
-There are two tools: 
+There are three main components: 
 
 1. A text cleanup tool using GPT-4o-mini, for making sure OCR artefacts and other non-audiobook friendly text is cleaned up. 
-2. An audiobook conversion tool using OpenAI's TTS-1 model, to convert the text file to MP3
+2. An audiobook conversion tool using MLX-Audio, to convert the text file to MP3
+3. A podcast feed generator and server for listening to your audiobooks through any podcast app
 
 ## Text Cleanup Tool
 
@@ -94,12 +95,35 @@ This script converts text files into audiobooks using the MLX-Audio text-to-spee
 - Preserves original text/audio if processing fails for any chunk
 - Cleans up temporary files even if processing is interrupted
 
+## Podcast Feed and Server
+
+This feature allows you to listen to your generated audiobooks through any podcast player app.
+
+### Features
+- Automatically creates an RSS podcast feed for all your generated audiobooks
+- Feed is updated whenever a new audiobook is created
+- Simple HTTP server makes the feed and audio files available to podcast apps
+- Audiobooks are chronologically sorted (newest first)
+
+### Usage
+1. Run the server:
+   ```bash
+   python server.py
+   ```
+2. The server will start on port 4699
+3. Add the feed URL to your podcast player app:
+   ```
+   http://localhost:4699/feed
+   ```
+4. Any new audiobooks created will automatically appear in your podcast feed
+
 ## Notes
 - Text cleanup default chunk size is 2000 characters
-- Audio conversion chunk size is 4000 characters (OpenAI TTS limit)
+- Audio conversion chunk size is limited to optimize for high quality speech synthesis
+- The podcast server only works on your local network (localhost)
 - Both scripts require an active internet connection
 - Processing time and cost will depend on:
   - The size of your input file
-  - Current OpenAI API rates
+  - Current OpenAI API rates (for cleanup)
   - Network speed and stability
 

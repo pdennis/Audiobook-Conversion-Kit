@@ -1,0 +1,103 @@
+<?xml version="1.0" ?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+  <channel>
+    <title>Local Audiobooks</title>
+    <link>https://pats-mac-studio.alpaca-turtle.ts.net</link>
+    <language>en-us</language>
+    <itunes:author>Audiobook Conversion Kit</itunes:author>
+    <description>Locally generated audiobooks</description>
+    <itunes:summary>Locally generated audiobooks</itunes:summary>
+    <lastBuildDate>Fri, 23 May 2025 17:34:02 +0000</lastBuildDate>
+    <atom:link href="https://pats-mac-studio.alpaca-turtle.ts.net/feed" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>threat</title>
+      <itunes:title>threat</itunes:title>
+      <pubDate>Fri, 23 May 2025 21:18:19 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/threat_audiobook.mp3" length="23918732" type="audio/mpeg"/>
+      <guid isPermaLink="false">threat_audiobook.mp3_1748035099.7540674</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>22:48:00</itunes:duration>
+    </item>
+    <item>
+      <title>pitch</title>
+      <itunes:title>pitch</itunes:title>
+      <pubDate>Fri, 23 May 2025 16:18:52 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/pitch_audiobook.mp3" length="1835468" type="audio/mpeg"/>
+      <guid isPermaLink="false">pitch_audiobook.mp3_1748017132.234147</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>01:45:00</itunes:duration>
+    </item>
+    <item>
+      <title>literacy</title>
+      <itunes:title>literacy</itunes:title>
+      <pubDate>Thu, 22 May 2025 19:39:29 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/literacy_audiobook.mp3" length="3549260" type="audio/mpeg"/>
+      <guid isPermaLink="false">literacy_audiobook.mp3_1747942769.3552582</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>03:23:00</itunes:duration>
+    </item>
+    <item>
+      <title>ss</title>
+      <itunes:title>ss</itunes:title>
+      <pubDate>Wed, 21 May 2025 16:56:37 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/ss_audiobook.mp3" length="2502764" type="audio/mpeg"/>
+      <guid isPermaLink="false">ss_audiobook.mp3_1747846597.5802703</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>02:23:00</itunes:duration>
+    </item>
+    <item>
+      <title>brief</title>
+      <itunes:title>brief</itunes:title>
+      <pubDate>Wed, 21 May 2025 16:11:29 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/brief_audiobook.mp3" length="9216236" type="audio/mpeg"/>
+      <guid isPermaLink="false">brief_audiobook.mp3_1747843889.6574948</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>08:47:00</itunes:duration>
+    </item>
+    <item>
+      <title>buffetny</title>
+      <itunes:title>buffetny</itunes:title>
+      <pubDate>Tue, 13 May 2025 16:23:10 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/buffetny_audiobook.mp3" length="1770284" type="audio/mpeg"/>
+      <guid isPermaLink="false">buffetny_audiobook.mp3_1747153390.5465393</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>01:41:00</itunes:duration>
+    </item>
+    <item>
+      <title>ny</title>
+      <itunes:title>ny</itunes:title>
+      <pubDate>Tue, 13 May 2025 16:12:19 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/ny_audiobook.mp3" length="7306220" type="audio/mpeg"/>
+      <guid isPermaLink="false">ny_audiobook.mp3_1747152739.3433506</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>06:58:00</itunes:duration>
+    </item>
+    <item>
+      <title>pew_cleaned</title>
+      <itunes:title>pew_cleaned</itunes:title>
+      <pubDate>Wed, 23 Apr 2025 19:25:04 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/pew_cleaned_audiobook.mp3" length="20642636" type="audio/mpeg"/>
+      <guid isPermaLink="false">pew_cleaned_audiobook.mp3_1745436304.1005867</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>19:41:00</itunes:duration>
+    </item>
+    <item>
+      <title>harvard</title>
+      <itunes:title>harvard</itunes:title>
+      <pubDate>Wed, 23 Apr 2025 18:27:31 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/harvard_audiobook.mp3" length="2881388" type="audio/mpeg"/>
+      <guid isPermaLink="false">harvard_audiobook.mp3_1745432851.1329248</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>02:45:00</itunes:duration>
+    </item>
+    <item>
+      <title>tariffeconomy</title>
+      <itunes:title>tariffeconomy</itunes:title>
+      <pubDate>Tue, 22 Apr 2025 16:21:40 +0000</pubDate>
+      <enclosure url="https://pats-mac-studio.alpaca-turtle.ts.net/audio/tariffeconomy_audiobook.mp3" length="1405964" type="audio/mpeg"/>
+      <guid isPermaLink="false">tariffeconomy_audiobook.mp3_1745338900.9922707</guid>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:duration>01:20:00</itunes:duration>
+    </item>
+  </channel>
+</rss>
